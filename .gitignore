@@ -1,0 +1,6 @@
+venv/*
+winvenv/*
+.vscode/*
+src/cpp/*
+npm-debug.log
+src/__pycache__/*
