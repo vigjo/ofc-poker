@@ -63,12 +63,20 @@ class BottomRowRoyalty(Enum):
     STRAIGHTFLUSH = 15
     ROYALFLUSH = 25
 
-
+#do suits need to be modifiable?
+#may only need a constructor here, cards shouldnt need to be modified after initialization
 class Card:
     def __init__(self, Suit, Rank):
         self.suit = Suit.name
         self.rank = Rank.name
         print(self.suit + " " + self.rank)
+            
+    def get_suit(self):
+        return self.suit
+    
+    def get_rank(self):
+        return self.rank
+    
 
 #need to initialize
 #draw, shuffle
@@ -76,6 +84,7 @@ class Deck:
     def __init__(self):
         self.cards = []
 
+    #TODO - implement mersenne twister randomness into this
     def shuffle(self):
         for suit in list(Suit):
             print(suit)
@@ -116,27 +125,47 @@ class Player:
 class Game:
     def __init__(self):
         self.deck = Deck()
+        #deck needs to be shuffled between cycles
         self.deck.shuffle()
 
-        #game can have two or three players
-        #input here should come externally?
-        player_one = Player("Joe")
-        player_two = Player("Steve")
+        self.deal_round = 0
         self.players = []
-        self.players.append(player_one)
-        self.players.append(player_two)
-
-        #players place cards for the round
-        #move into separate test file eventually
         
-        #print_board(players)
+    #game setup
+    def add_player(self, player_name):
+        #print(self.players)
+        #print(self.players.count.)
+        new_player = Player(player_name)
+        self.players.append(new_player)
+        # if self.players.__len__ < 3:
+        #     new_player = Player(player_name)
+        #     self.players.append(new_player)
+        # else:
+        #     print("Player limit already reached")    
 
+    #game playing phase
     def deal(self):
         counter = 0
         for i in range(5):
             for player in self.players:
                 player.hand.cards.append(self.deck.cards[counter])
-                counter += 1           
+                counter += 1
+        self.deal_round += 1        
+                
+    #player number, range from 0-2, 0-3, need to add something for row management
+    #card_index is of range 0-4, reduces by one for each card played
+    #player should only be able to play cards that are left in their hand
+    def play_card(self, player_number, card_index, col, row):
+        print(self.players[player_number].hand.cards)
+        if row == 0 and col <= 3:
+            self.players[player_number].board.top_row[col] = self.players[player_number].hand.cards.pop(card_index)                       
+        elif row == 1 and col <= 5:
+            self.players[player_number].board.middle_row[col] = self.players[player_number].hand.cards.pop(card_index)
+        elif row == 2 and col <= 5:
+            self.players[player_number].board.bottom_row[col] = self.players[player_number].hand.cards.pop(card_index)
+        else:
+            print("invalid card location")        
+
 
     def print_board(self):
         for player in self.players:
@@ -165,20 +194,29 @@ class Game:
             print("card: " + card.rank + " " +card.suit)
             #print("rank: " + card.rank)
     
-    #player number, range from 0-2, 0-3, need to add something for row management
-    #card_index is of range 0-4, reduces by one for each card played
-    #player can only play 
-    def play_card(self, player_number, card_index, col):
-        print(self.players[player_number].hand.cards)
-        self.players[player_number].board.top_row[col] = self.players[player_number].hand.cards.pop(card_index)            
-
         
+        
+        
+                    
+
+
+#break this out into separate test file        
+
+print("STARTING GAME")
+
 game = Game()
 
+print("ADDING PLAYERS")
+game.add_player("Joe")
+game.add_player("Steve")
+
+print("DEALING CARDS")
 game.deal()
+
 
 game.print_board()
         
+                
 game.play_card(1, 1, 1)
 
 game.print_board()
