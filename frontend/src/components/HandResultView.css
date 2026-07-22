@@ -1,0 +1,57 @@
+.hand-result {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: center;
+}
+
+.hand-result__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.hand-result__table th,
+.hand-result__table td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: center;
+}
+
+.hand-result__winner {
+  color: #7ee787;
+  font-weight: 600;
+}
+
+.hand-result__fantasy {
+  color: #f4c542;
+  font-weight: 600;
+}
+
+.hand-result__next {
+  align-self: center;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  border: none;
+  background: #4da3ff;
+  color: #06182b;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.hand-result__next:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hand-result__hint {
+  opacity: 0.75;
+  font-size: 0.9rem;
+}
+
+.hand-result__error {
+  color: #ff8080;
+}

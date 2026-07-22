@@ -1,0 +1,40 @@
+.connection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.connection-badge__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #888;
+}
+
+.connection-badge--open .connection-badge__dot {
+  background: #7ee787;
+}
+
+.connection-badge--connecting .connection-badge__dot,
+.connection-badge--reconnecting .connection-badge__dot {
+  background: #f4c542;
+  animation: connection-pulse 1s ease-in-out infinite;
+}
+
+.connection-badge--closed .connection-badge__dot {
+  background: #ff8080;
+}
+
+@keyframes connection-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}

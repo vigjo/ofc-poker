@@ -1,6 +1,49 @@
-venv/*
-winvenv/*
-.vscode/*
-src/cpp/*
+# Legacy prototype (kept for reference only)
+legacy-python-prototype/venv/*
+legacy-python-prototype/winvenv/*
+legacy-python-prototype/src/__pycache__/*
+legacy-python-prototype/src/cpp/*
 npm-debug.log
-src/__pycache__/*
+*.log
+
+# Editors
+.vscode/*
+.idea/
+
+# Backend (Maven / Quarkus)
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/src/main/resources/META-INF/resources/
+*.class
+*.jar
+!backend/.mvn/wrapper/*.properties
+
+# Frontend (Node / Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+frontend/.vite/
+
+# Terraform
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/*.tfplan
+infra/**/crash.log
+infra/**/override.tf
+infra/**/override.tf.json
+infra/**/terraform.tfvars
+infra/**/terraform.tfvars.json
+!infra/**/terraform.tfvars.example
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# OS
+.DS_Store
+Thumbs.db

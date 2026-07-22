@@ -1,0 +1,90 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-ci.yml"
+
+concurrency:
+  group: terraform-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  plan:
+    name: fmt / validate / plan (${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [staging, production]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform fmt (check only)
+        run: terraform fmt -check -recursive infra
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_PLAN_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: terraform init
+        working-directory: infra/envs/${{ matrix.environment }}
+        run: terraform init -input=false
+
+      - name: terraform validate
+        working-directory: infra/envs/${{ matrix.environment }}
+        run: terraform validate
+
+      # This job is a single matrix over both environments (not a GitHub
+      # Environment deployment), so it can't use GH Environment-scoped
+      # vars/secrets without changing the OIDC subject claim the plan role
+      # trusts (see infra/bootstrap/iam.tf). Repo-level vars prefixed
+      # STAGING_/PRODUCTION_ stand in for that instead.
+      - name: terraform plan
+        id: plan
+        working-directory: infra/envs/${{ matrix.environment }}
+        run: terraform plan -input=false -no-color -out=tfplan
+        continue-on-error: true
+        env:
+          TF_VAR_root_domain: ${{ matrix.environment == 'staging' && vars.STAGING_ROOT_DOMAIN || vars.PRODUCTION_ROOT_DOMAIN }}
+          TF_VAR_frontend_domain: ${{ matrix.environment == 'staging' && vars.STAGING_FRONTEND_DOMAIN || vars.PRODUCTION_FRONTEND_DOMAIN }}
+          TF_VAR_api_domain: ${{ matrix.environment == 'staging' && vars.STAGING_API_DOMAIN || vars.PRODUCTION_API_DOMAIN }}
+          TF_VAR_ecr_repository_url: ${{ vars.ECR_REPOSITORY_URL }}
+          TF_VAR_alert_emails_csv: ${{ matrix.environment == 'staging' && vars.STAGING_ALERT_EMAILS || vars.PRODUCTION_ALERT_EMAILS }}
+          TF_VAR_backend_image_tag: ${{ github.sha }}
+
+      - name: Show plan
+        working-directory: infra/envs/${{ matrix.environment }}
+        run: terraform show -no-color tfplan
+
+      - name: Comment plan on PR
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const output = `#### Terraform plan - ${{ matrix.environment }}
+            \`\`\`
+            ${{ steps.plan.outcome }}
+            \`\`\`
+            See the workflow run for the full plan output.`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output,
+            });
+
+      - name: Fail if plan errored
+        if: steps.plan.outcome == 'failure'
+        run: exit 1

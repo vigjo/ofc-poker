@@ -1,0 +1,7 @@
+# Shell scripts run inside Linux containers and CI; a CRLF shebang line
+# breaks the interpreter lookup ("no such file or directory") even though
+# the file looks fine in a text editor. Force LF regardless of the
+# committer's platform/git autocrlf setting.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.tf text eol=lf

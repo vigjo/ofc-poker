@@ -1,0 +1,106 @@
+name: Deploy to staging
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "infra/envs/staging/**"
+      - "infra/modules/**"
+      - ".github/workflows/deploy-staging.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Terraform apply + release
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      # --- Backend: build, scan, push, then let Terraform roll the service ---
+      - name: Set up Amazon Corretto 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: corretto
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Package backend
+        working-directory: backend
+        run: ./mvnw -B -q package -DskipTests
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        working-directory: backend
+        run: |
+          docker build -t "${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}" .
+          docker push "${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}"
+
+      - name: Terraform apply (staging)
+        working-directory: infra/envs/staging
+        run: |
+          terraform init -input=false
+          terraform apply -input=false -auto-approve
+        env:
+          TF_VAR_root_domain: ${{ vars.ROOT_DOMAIN }}
+          TF_VAR_frontend_domain: ${{ vars.FRONTEND_DOMAIN }}
+          TF_VAR_api_domain: ${{ vars.API_DOMAIN }}
+          TF_VAR_ecr_repository_url: ${{ vars.ECR_REPOSITORY_URL }}
+          TF_VAR_alert_emails_csv: ${{ vars.ALERT_EMAILS }}
+          TF_VAR_backend_image_tag: ${{ github.sha }}
+
+      # --- Frontend: build against the just-applied API URL, publish, invalidate ---
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Read Terraform outputs
+        id: tf-outputs
+        working-directory: infra/envs/staging
+        run: |
+          echo "api_base_url=$(terraform output -raw api_base_url)" >> "$GITHUB_OUTPUT"
+          echo "ws_base_url=$(terraform output -raw ws_base_url)" >> "$GITHUB_OUTPUT"
+          echo "frontend_bucket=$(terraform output -raw frontend_bucket_name)" >> "$GITHUB_OUTPUT"
+          echo "distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps && npm run build
+        env:
+          VITE_API_BASE_URL: ${{ steps.tf-outputs.outputs.api_base_url }}
+          VITE_WS_BASE_URL: ${{ steps.tf-outputs.outputs.ws_base_url }}
+
+      - name: Publish to S3
+        run: |
+          aws s3 sync frontend/dist "s3://${{ steps.tf-outputs.outputs.frontend_bucket }}" --delete
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ steps.tf-outputs.outputs.distribution_id }}" \
+            --paths "/*"
