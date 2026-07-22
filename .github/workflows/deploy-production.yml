@@ -68,7 +68,7 @@ jobs:
           TF_VAR_alert_emails_csv: ${{ vars.ALERT_EMAILS }}
           TF_VAR_backend_image_tag: ${{ steps.image.outputs.tag }}
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm

@@ -73,7 +73,7 @@ jobs:
           TF_VAR_backend_image_tag: ${{ github.sha }}
 
       # --- Frontend: build against the just-applied API URL, publish, invalidate ---
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
