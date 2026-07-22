@@ -17,6 +17,8 @@ interface PlayingCardProps {
   size?: "sm" | "md" | "lg";
   onClick?: () => void;
   label?: string;
+  /** Optional hotkey badge shown on the card (e.g. "1"–"9", "0"). */
+  hotkeyBadge?: string;
 }
 
 export function PlayingCard({
@@ -26,6 +28,7 @@ export function PlayingCard({
   size = "md",
   onClick,
   label,
+  hotkeyBadge,
 }: PlayingCardProps) {
   const interactive = Boolean(onClick);
 
@@ -55,6 +58,11 @@ export function PlayingCard({
       aria-pressed={interactive ? selected : undefined}
       aria-label={label ?? `${rankLabel} of ${suitName(suit)}`}
     >
+      {hotkeyBadge != null && (
+        <span className="playing-card__hotkey" aria-hidden="true">
+          {hotkeyBadge}
+        </span>
+      )}
       <span className="playing-card__corner playing-card__corner--top">
         {rankLabel}
         {SUIT_SYMBOLS[suit]}

@@ -30,7 +30,7 @@ export async function startGame(hostPage: Page): Promise<void> {
 }
 
 /**
- * Plays one full turn (place + optional discard + confirm) on this page if
+ * Plays one full turn (place + confirm; leftover auto-discarded) on this page if
  * it is currently this player's turn. Returns whether a turn was played, so
  * the caller can poll both players' pages until the hand ends.
  */
@@ -45,17 +45,12 @@ export async function playTurnIfActive(page: Page): Promise<boolean> {
   if (pendingCount === 0) {
     return false;
   }
-  const placeCount = pendingCount === 5 ? 5 : pendingCount - 1;
+  const placeCount = pendingCount === 5 || pendingCount === 13 ? pendingCount : pendingCount - 1;
   const rows = page.locator(".game-board__you .player-board__row--clickable");
 
   for (let i = 0; i < placeCount; i++) {
     await cardButtons.first().click();
     await rows.first().click();
-  }
-
-  if (pendingCount !== 5) {
-    await cardButtons.first().click();
-    await page.locator(".game-board__discard-zone").click();
   }
 
   await page.locator(".game-board__confirm").click();

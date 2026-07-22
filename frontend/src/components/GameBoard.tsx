@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "../api/client";
 import type { Card, PlacementDto, PlayerView, Row, RoomStateView } from "../api/types";
-import { ROW_CAPACITY } from "../api/types";
+import { ROW_CAPACITY, ROWS } from "../api/types";
 import { PlayerBoard } from "./PlayerBoard";
 import { PlayingCard } from "./PlayingCard";
 import "./GameBoard.css";
@@ -17,10 +17,35 @@ interface MoveRequirements {
   discardRequired: boolean;
 }
 
+const ROW_BY_DIGIT: Record<string, Row> = {
+  "1": "TOP",
+  "2": "MIDDLE",
+  "3": "BOTTOM",
+};
+
 function moveRequirements(pendingCount: number): MoveRequirements {
   if (pendingCount === 13) return { placeCount: 13, discardRequired: false };
   if (pendingCount === 5) return { placeCount: 5, discardRequired: false };
   return { placeCount: pendingCount - 1, discardRequired: true };
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+}
+
+/** Map a digit key to a 1-based hand index. `0` selects the 10th card. */
+function digitToHandIndex(key: string): number | null {
+  if (key >= "1" && key <= "9") return Number(key);
+  if (key === "0") return 10;
+  return null;
+}
+
+function hotkeyBadgeForIndex(index: number): string | undefined {
+  if (index < 9) return String(index + 1);
+  if (index === 9) return "0";
+  return undefined;
 }
 
 export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
@@ -33,7 +58,10 @@ export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
   const players = state.players ?? [];
   const me = players.find((p) => p.isYou);
   const isMyTurn = Boolean(me && state.currentActor === me.playerId);
-  const pending = (isMyTurn ? me?.pendingCards : null) ?? [];
+  const canAct = Boolean(
+    me && (isMyTurn || (me.fantasyland && (me.pendingCards?.length ?? 0) > 0)),
+  );
+  const pending = (canAct ? me?.pendingCards : null) ?? [];
   const requirements = moveRequirements(pending.length);
 
   const unassigned = pending.filter(
@@ -48,10 +76,20 @@ export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
     return grouped;
   }, [draftPlacements]);
 
-  const readyToSubmit =
-    isMyTurn &&
+  const inferredDiscard =
+    requirements.discardRequired &&
     draftPlacements.length === requirements.placeCount &&
-    (!requirements.discardRequired || draftDiscard !== null);
+    draftDiscard == null &&
+    unassigned.length === 1
+      ? unassigned[0]!
+      : null;
+
+  const discardForSubmit = draftDiscard ?? inferredDiscard;
+
+  const readyToSubmit =
+    canAct &&
+    draftPlacements.length === requirements.placeCount &&
+    (!requirements.discardRequired || discardForSubmit != null);
 
   function resetDraft() {
     setSelectedCard(null);
@@ -69,11 +107,16 @@ export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
     return ROW_CAPACITY[row] - placedCounts[row] - draftCount;
   }
 
-  function handleRowClick(row: Row) {
-    if (!selectedCard || !me) return;
+  function placeCardOnRow(card: Card, row: Row) {
+    if (!me) return;
     if (rowCapacityRemaining(row, me) <= 0) return;
-    setDraftPlacements((prev) => [...prev, { card: selectedCard, row }]);
+    setDraftPlacements((prev) => [...prev, { card, row }]);
     setSelectedCard(null);
+  }
+
+  function handleRowClick(row: Row) {
+    if (!selectedCard) return;
+    placeCardOnRow(selectedCard, row);
   }
 
   function handleUndoPlacement(row: Row, card: Card) {
@@ -93,10 +136,21 @@ export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
 
   async function handleConfirm() {
     if (!readyToSubmit) return;
+
+    let discard: Card | null = null;
+    if (requirements.discardRequired) {
+      const leftovers = pending.filter((card) => !draftPlacements.some((p) => p.card === card));
+      if (leftovers.length !== 1) {
+        setError("Place the required cards; the remaining card will be discarded automatically.");
+        return;
+      }
+      discard = leftovers[0]!;
+    }
+
     setSubmitting(true);
     setError(null);
     try {
-      const updated = await api.applyMove(state.roomId!, seatToken, draftPlacements, draftDiscard);
+      const updated = await api.applyMove(state.roomId!, seatToken, draftPlacements, discard);
       onStateUpdate(updated);
       resetDraft();
     } catch (err) {
@@ -107,6 +161,83 @@ export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
       setSubmitting(false);
     }
   }
+
+  const hotkeysRef = useRef({
+    canAct,
+    submitting,
+    selectedCard,
+    unassigned,
+    readyToSubmit,
+    me,
+    placeCardOnRow,
+    handleConfirm,
+  });
+  hotkeysRef.current = {
+    canAct,
+    submitting,
+    selectedCard,
+    unassigned,
+    readyToSubmit,
+    me,
+    placeCardOnRow,
+    handleConfirm,
+  };
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const ctx = hotkeysRef.current;
+      if (!ctx.canAct || ctx.submitting) return;
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (isTypingTarget(event.target)) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSelectedCard(null);
+        return;
+      }
+
+      if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        setDraftPlacements((prev) => (prev.length === 0 ? prev : prev.slice(0, -1)));
+        return;
+      }
+
+      if (event.key === "Enter") {
+        if (!ctx.readyToSubmit) return;
+        event.preventDefault();
+        void ctx.handleConfirm();
+        return;
+      }
+
+      const handIndex = digitToHandIndex(event.key);
+      if (handIndex == null) return;
+
+      if (ctx.selectedCard) {
+        const row = ROW_BY_DIGIT[event.key];
+        if (!row) return;
+        event.preventDefault();
+        ctx.placeCardOnRow(ctx.selectedCard, row);
+        return;
+      }
+
+      const card = ctx.unassigned[handIndex - 1];
+      if (!card) return;
+      event.preventDefault();
+      setSelectedCard(card);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const discardPreview = draftDiscard ?? inferredDiscard;
+  const showRowHotkeys = Boolean(selectedCard);
+
+  const hintText = selectedCard
+    ? "Press 1 / 2 / 3 for top / middle / bottom, or click a row. Esc clears selection."
+    : requirements.discardRequired
+      ? "Press a number to select a card, then 1–3 for a row. Leftover discards automatically. Backspace undoes · Enter confirms."
+      : "Press a number to select a card, then 1–3 for a row. Backspace undoes · Enter confirms.";
 
   return (
     <div className="game-board">
@@ -128,24 +259,27 @@ export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
             player={me}
             isCurrentActor={isMyTurn}
             size="lg"
-            draftByRow={isMyTurn ? draftByRow : undefined}
-            onRowClick={isMyTurn ? handleRowClick : undefined}
+            draftByRow={canAct ? draftByRow : undefined}
+            onRowClick={canAct ? handleRowClick : undefined}
+            highlightRows={
+              showRowHotkeys && me
+                ? ROWS.filter((row) => rowCapacityRemaining(row, me) > 0)
+                : undefined
+            }
+            showRowHotkeys={showRowHotkeys}
           />
 
-          {isMyTurn && (
+          {canAct && (
             <div className="game-board__hand" aria-label="Your dealt cards">
-              <p className="game-board__hint">
-                {selectedCard
-                  ? "Now click a row (or the discard pile) to place it."
-                  : `Select a card to place${requirements.discardRequired ? " or discard" : ""}.`}
-              </p>
+              <p className="game-board__hint">{hintText}</p>
               <div className="game-board__hand-cards">
-                {unassigned.map((card) => (
+                {unassigned.map((card, index) => (
                   <PlayingCard
                     key={card}
                     card={card}
                     size="lg"
                     selected={selectedCard === card}
+                    hotkeyBadge={hotkeyBadgeForIndex(index)}
                     onClick={() => setSelectedCard(selectedCard === card ? null : card)}
                   />
                 ))}
@@ -158,12 +292,14 @@ export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
                   onClick={handleDiscardZoneClick}
                   disabled={!selectedCard && !draftDiscard}
                 >
-                  {draftDiscard ? (
+                  {discardPreview ? (
                     <>
-                      Discarding <PlayingCard card={draftDiscard} size="sm" /> (click to undo)
+                      {draftDiscard ? "Discarding" : "Will discard"}{" "}
+                      <PlayingCard card={discardPreview} size="sm" />
+                      {draftDiscard ? " (click to undo)" : ""}
                     </>
                   ) : (
-                    "Discard pile - select a card, then click here"
+                    "Leftover card discards automatically — or select a card and click here"
                   )}
                 </button>
               )}
@@ -191,14 +327,14 @@ export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
                 type="button"
                 className="game-board__confirm"
                 disabled={!readyToSubmit || submitting}
-                onClick={handleConfirm}
+                onClick={() => void handleConfirm()}
               >
                 {submitting ? "Submitting…" : "Confirm move"}
               </button>
             </div>
           )}
 
-          {!isMyTurn && <p className="game-board__waiting">Waiting for other players…</p>}
+          {!canAct && <p className="game-board__waiting">Waiting for other players…</p>}
         </div>
       )}
     </div>

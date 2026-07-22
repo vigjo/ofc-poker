@@ -68,6 +68,23 @@
   font-size: 0.75rem;
   opacity: 0.7;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.player-board__row-hotkey {
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  background: #4da3ff;
+  color: #06182b;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1rem;
+  text-align: center;
+  opacity: 1;
 }
 
 .player-board__row-cards {

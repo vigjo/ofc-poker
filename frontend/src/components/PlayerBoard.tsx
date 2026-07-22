@@ -11,9 +11,12 @@ interface PlayerBoardProps {
   draftByRow?: Partial<Record<Row, Card[]>>;
   onRowClick?: (row: Row) => void;
   highlightRows?: Row[];
+  /** When true, show 1/2/3 hotkey badges on top/middle/bottom rows. */
+  showRowHotkeys?: boolean;
 }
 
 const ROW_LABELS: Record<Row, string> = { TOP: "Top", MIDDLE: "Middle", BOTTOM: "Bottom" };
+const ROW_HOTKEYS: Record<Row, string> = { TOP: "1", MIDDLE: "2", BOTTOM: "3" };
 
 export function PlayerBoard({
   player,
@@ -22,6 +25,7 @@ export function PlayerBoard({
   draftByRow,
   onRowClick,
   highlightRows,
+  showRowHotkeys = false,
 }: PlayerBoardProps) {
   const rowCards: Record<Row, Card[]> = {
     TOP: player.top ?? [],
@@ -82,7 +86,14 @@ export function PlayerBoard({
                   : undefined
               }
             >
-              <span className="player-board__row-label">{ROW_LABELS[row]}</span>
+              <span className="player-board__row-label">
+                {showRowHotkeys && (
+                  <span className="player-board__row-hotkey" aria-hidden="true">
+                    {ROW_HOTKEYS[row]}
+                  </span>
+                )}
+                {ROW_LABELS[row]}
+              </span>
               <div className="player-board__row-cards">
                 {placed.map((card, i) => (
                   <PlayingCard key={`placed-${card}-${i}`} card={card} size={size} />

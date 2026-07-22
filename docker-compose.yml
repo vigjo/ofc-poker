@@ -19,7 +19,7 @@ services:
       retries: 10
 
   dynamodb-admin:
-    image: aaronshaf/dynamodb-admin:4
+    image: aaronshaf/dynamodb-admin:5.3.4
     environment:
       DYNAMO_ENDPOINT: http://dynamodb-local:8000
       AWS_ACCESS_KEY_ID: local
