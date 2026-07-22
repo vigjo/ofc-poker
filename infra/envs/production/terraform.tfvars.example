@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (gitignored) and fill in your own values.
+root_domain     = "example.com"
+frontend_domain = "play.example.com"
+api_domain      = "api.example.com"
+
+# From `terraform output ecr_repository_url` in infra/bootstrap.
+ecr_repository_url = "123456789012.dkr.ecr.us-east-1.amazonaws.com/ofc-poker-backend"
+
+alert_emails_csv = "you@example.com"

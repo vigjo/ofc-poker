@@ -1,0 +1,337 @@
+---
+openapi: 3.1.0
+components:
+  schemas:
+    Card:
+      type: string
+      examples:
+        - Ah
+      pattern: "^[2-9TJQKA][cdhs]$"
+      description: "Two-character card code: rank (2-9,T,J,Q,K,A) + suit (c,d,h,s)"
+    CreateRoomRequest:
+      type: object
+      required:
+        - displayName
+      properties:
+        displayName:
+          type: string
+          maxLength: 24
+          pattern: \S
+    HandResult:
+      type: object
+      properties:
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerResult"
+    JoinRoomRequest:
+      type: object
+      required:
+        - displayName
+      properties:
+        displayName:
+          type: string
+          maxLength: 24
+          pattern: \S
+    MoveRequest:
+      type: object
+      required:
+        - requestId
+        - placements
+      properties:
+        requestId:
+          type: string
+          pattern: \S
+        placements:
+          type: array
+          maxItems: 13
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PlacementDto"
+        discard:
+          $ref: "#/components/schemas/Card"
+    PairwiseResult:
+      type: object
+      properties:
+        opponentId:
+          type: string
+        rowPoints:
+          type: integer
+          format: int32
+        scoopBonus:
+          type: integer
+          format: int32
+        royaltyDifferential:
+          type: integer
+          format: int32
+        total:
+          type: integer
+          format: int32
+    PlacementDto:
+      type: object
+      required:
+        - card
+        - row
+      properties:
+        card:
+          $ref: "#/components/schemas/Card"
+        row:
+          $ref: "#/components/schemas/Row"
+    PlayerResult:
+      type: object
+      properties:
+        playerId:
+          type: string
+        fouled:
+          type: boolean
+        royalties:
+          type: integer
+          format: int32
+        total:
+          type: integer
+          format: int32
+        vsOpponents:
+          type: array
+          items:
+            $ref: "#/components/schemas/PairwiseResult"
+        fantasylandNextHand:
+          type: boolean
+    PlayerView:
+      type: object
+      properties:
+        playerId:
+          type: string
+        displayName:
+          type: string
+        seatIndex:
+          type: integer
+          format: int32
+        host:
+          type: boolean
+        connected:
+          type: boolean
+        fantasyland:
+          type: boolean
+        top:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        middle:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        bottom:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        pendingCount:
+          type: integer
+          format: int32
+        pendingCards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        isYou:
+          type: boolean
+    RoomStateView:
+      type: object
+      properties:
+        roomId:
+          type: string
+        inviteCode:
+          type: string
+        version:
+          type: integer
+          format: int64
+        status:
+          $ref: "#/components/schemas/RoomStatus"
+        viewerPlayerId:
+          type: string
+        currentActor:
+          type: string
+        street:
+          $ref: "#/components/schemas/Street"
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerView"
+        lastHandResult:
+          $ref: "#/components/schemas/HandResult"
+        runningTotals:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+    RoomStatus:
+      type: string
+      enum:
+        - WAITING
+        - IN_PROGRESS
+        - HAND_COMPLETE
+        - ABANDONED
+    Row:
+      type: string
+      enum:
+        - TOP
+        - MIDDLE
+        - BOTTOM
+    SeatCredentials:
+      type: object
+      properties:
+        roomId:
+          type: string
+        inviteCode:
+          type: string
+        playerId:
+          type: string
+        displayName:
+          type: string
+        seatToken:
+          type: string
+    Street:
+      type: string
+      enum:
+        - INITIAL
+        - STREET_1
+        - STREET_2
+        - STREET_3
+        - STREET_4
+        - COMPLETE
+  securitySchemes:
+    SecurityScheme:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Authentication
+paths:
+  /api/rooms:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoomRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeatCredentials"
+        "400":
+          description: Bad Request
+      summary: Create Room
+      tags:
+        - Room Resource
+  /api/rooms/{roomId}/join:
+    post:
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinRoomRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeatCredentials"
+        "400":
+          description: Bad Request
+      summary: Join Room
+      tags:
+        - Room Resource
+  /api/rooms/{roomId}/moves:
+    post:
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomStateView"
+        "400":
+          description: Bad Request
+      summary: Apply Move
+      tags:
+        - Room Resource
+  /api/rooms/{roomId}/next-hand:
+    post:
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomStateView"
+      summary: Start Next Hand
+      tags:
+        - Room Resource
+  /api/rooms/{roomId}/start:
+    post:
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomStateView"
+      summary: Start Game
+      tags:
+        - Room Resource
+  /api/rooms/{roomId}/state:
+    get:
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomStateView"
+      summary: Get State
+      tags:
+        - Room Resource
+info:
+  title: OFC Poker API
+  version: 1.0.0
+  description: "Private, invite-only Pineapple Open Face Chinese poker rooms for 2-3\
+    \ guest players."

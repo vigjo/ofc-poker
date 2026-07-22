@@ -1,0 +1,101 @@
+name: Deploy to production
+
+# Production is promoted deliberately, never on every merge to main: either
+# by publishing a GitHub release (tag vX.Y.Z) once it's been soaked in
+# staging, or by an explicit manual dispatch. The "production" GitHub
+# Environment should have a required-reviewers protection rule configured
+# in repo settings so this still pauses for human approval either way.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Backend image tag to deploy (defaults to the release tag / current SHA)"
+        required: false
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Terraform apply + release
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.release.tag_name || github.sha }}
+
+      - name: Resolve image tag
+        id: image
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          if [ -z "$TAG" ]; then TAG="${{ github.sha }}"; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Verify the image exists in ECR
+        run: |
+          aws ecr describe-images \
+            --repository-name "${{ vars.ECR_REPOSITORY_NAME }}" \
+            --image-ids imageTag=${{ steps.image.outputs.tag }}
+
+      - name: Terraform apply (production)
+        working-directory: infra/envs/production
+        run: |
+          terraform init -input=false
+          terraform apply -input=false -auto-approve
+        env:
+          TF_VAR_root_domain: ${{ vars.ROOT_DOMAIN }}
+          TF_VAR_frontend_domain: ${{ vars.FRONTEND_DOMAIN }}
+          TF_VAR_api_domain: ${{ vars.API_DOMAIN }}
+          TF_VAR_ecr_repository_url: ${{ vars.ECR_REPOSITORY_URL }}
+          TF_VAR_alert_emails_csv: ${{ vars.ALERT_EMAILS }}
+          TF_VAR_backend_image_tag: ${{ steps.image.outputs.tag }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Read Terraform outputs
+        id: tf-outputs
+        working-directory: infra/envs/production
+        run: |
+          echo "api_base_url=$(terraform output -raw api_base_url)" >> "$GITHUB_OUTPUT"
+          echo "ws_base_url=$(terraform output -raw ws_base_url)" >> "$GITHUB_OUTPUT"
+          echo "frontend_bucket=$(terraform output -raw frontend_bucket_name)" >> "$GITHUB_OUTPUT"
+          echo "distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps && npm run build
+        env:
+          VITE_API_BASE_URL: ${{ steps.tf-outputs.outputs.api_base_url }}
+          VITE_WS_BASE_URL: ${{ steps.tf-outputs.outputs.ws_base_url }}
+
+      - name: Publish to S3
+        run: |
+          aws s3 sync frontend/dist "s3://${{ steps.tf-outputs.outputs.frontend_bucket }}" --delete
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ steps.tf-outputs.outputs.distribution_id }}" \
+            --paths "/*"
