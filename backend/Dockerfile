@@ -5,7 +5,7 @@
 # resolved before the source is copied in so an unrelated code change
 # doesn't bust the Maven dependency layer cache.
 # ---------------------------------------------------------------------------
-FROM amazoncorretto:25-al2023 AS build
+FROM amazoncorretto:26-al2023 AS build
 
 WORKDIR /workspace
 
@@ -23,7 +23,7 @@ RUN ./mvnw -q -B package -DskipTests -Dquarkus.package.jar.type=fast-jar
 # Quarkus produced (lib/ and app/ are split so unchanged dependency layers
 # stay cached across rebuilds).
 # ---------------------------------------------------------------------------
-FROM amazoncorretto:25-al2023-headless AS runtime
+FROM amazoncorretto:26-al2023-headless AS runtime
 
 RUN yum install -y shadow-utils >/dev/null && \
     groupadd --system --gid 1000 quarkus && \
