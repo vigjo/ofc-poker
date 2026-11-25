@@ -84,3 +84,18 @@
   color: #ff8080;
   margin: 0;
 }
+
+.all-games {
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  gap: .35rem;
+  padding: .2rem .65rem;
+  border: 1px solid currentColor;
+  border-radius: 1rem;
+  color: inherit;
+  font: 600 .875rem/1.5 system-ui, sans-serif;
+  text-decoration: none;
+}
+.all-games:hover { text-decoration: underline; }
+.all-games:focus-visible { outline: 3px solid #ed8b00; outline-offset: 2px; }

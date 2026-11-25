@@ -36,6 +36,7 @@ export function HomePage() {
 
   return (
     <div className="home-page">
+      <a className="all-games" href="https://games.joevig.com/"><span aria-hidden="true">←</span> All games</a>
       <h1>Pineapple OFC</h1>
       <p className="home-page__tagline">
         Private, invite-only Open Face Chinese Poker for 2-3 players.
