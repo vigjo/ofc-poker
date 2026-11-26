@@ -5,6 +5,15 @@ import { saveSeat } from "../session";
 import "./HomePage.css";
 
 export function HomePage() {
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem("ofc.lobby.theme") === "midnight" ? "midnight" : "felt"; }
+    catch { return "felt"; }
+  });
+  function chooseTheme(value: string) {
+    setTheme(value);
+    try { localStorage.setItem("ofc.lobby.theme", value); }
+    catch { /* Storage may be unavailable in private browsing. */ }
+  }
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
@@ -35,13 +44,19 @@ export function HomePage() {
   }
 
   return (
-    <div className="home-page">
-      <a className="all-games" href="https://games.joevig.com/"><span aria-hidden="true">←</span> All games</a>
+    <div className="poker-lobby" data-theme={theme}>
+      <nav className="library-bar" aria-label="Game library"><a href="https://games.joevig.com/"><span aria-hidden="true">‹</span> Game library</a></nav>
+      <main className="lobby-main">
+      <header className="lobby-table">
+        <div className="lobby-art" aria-hidden="true">{theme === "felt" ? <div className="fan">{["A♠", "K♥", "Q♣"].map(card => <i key={card}>{card[0]}<b>{card[1]}</b></i>)}</div> : <div className="chip-stack">♠</div>}</div>
       <h1>Pineapple OFC</h1>
       <p className="home-page__tagline">
         Private, invite-only Open Face Chinese Poker for 2-3 players.
       </p>
 
+      </header>
+      <div className="home-page">
+      <label className="theme-label">Room theme <select value={theme} onChange={e => chooseTheme(e.target.value)}><option value="felt">Green felt</option><option value="midnight">Midnight lounge</option></select></label>
       <div className="home-page__tabs" role="tablist">
         <button
           type="button"
@@ -72,7 +87,6 @@ export function HomePage() {
             maxLength={24}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="e.g. Alex"
-            autoFocus
           />
         </label>
 
@@ -100,6 +114,8 @@ export function HomePage() {
           {busy ? "Please wait…" : mode === "create" ? "Create room" : "Join room"}
         </button>
       </form>
+      </div>
+      </main>
     </div>
   );
 }

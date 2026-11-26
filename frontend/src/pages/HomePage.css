@@ -85,17 +85,47 @@
   margin: 0;
 }
 
-.all-games {
-  display: inline-flex;
-  align-self: center;
-  align-items: center;
-  gap: .35rem;
-  padding: .2rem .65rem;
-  border: 1px solid currentColor;
-  border-radius: 1rem;
-  color: inherit;
-  font: 600 .875rem/1.5 system-ui, sans-serif;
-  text-decoration: none;
+.library-bar {
+  padding: .7rem clamp(1rem, 5vw, 4rem);
+  border-bottom: 1px solid #ffffff24;
+  background: #0003;
+  color: #e5eceb;
+  font: 500 .9rem/1.5 system-ui, sans-serif;
 }
-.all-games:hover { text-decoration: underline; }
-.all-games:focus-visible { outline: 3px solid #ed8b00; outline-offset: 2px; }
+.library-bar a { color: inherit; text-underline-offset: .2em; }
+.library-bar a:focus-visible { outline: 3px solid #ffc969; outline-offset: 3px; }
+
+.poker-lobby {
+  --felt: #174d40;
+  min-height: 100svh;
+  background: #0e302b;
+  color: #fcf7ea;
+}
+.poker-lobby[data-theme="midnight"] { background: #151528; --felt: #573952; }
+.lobby-main { max-width: 65rem; margin: auto; padding: clamp(1rem, 4vw, 3rem); }
+.lobby-table {
+  border: 1px solid #b79c68;
+  outline: 1px solid #ddb87866;
+  outline-offset: -12px;
+  border-radius: 12px;
+  padding: clamp(1.5rem, 5vw, 4rem);
+  background: radial-gradient(ellipse at 70% 40%, #377563, #164c43 65%, #14392e);
+}
+[data-theme="midnight"] .lobby-table {
+  background: radial-gradient(ellipse at 90% 0, #956a8259, transparent 55%), repeating-linear-gradient(115deg,#23243d 0 1rem,#292941 1rem 1.1rem);
+}
+.lobby-table h1 { margin: .5rem 0; font: 600 clamp(2.3rem,5vw,4rem)/1.1 Georgia,serif; color: inherit; }
+.lobby-table p { margin: 0; opacity: 1; }
+.lobby-art { height: 9rem; display: grid; place-items: center; }
+.fan { display: flex; padding: .5rem; }
+.fan i { width: 4.7rem; height: 6.4rem; padding: .4rem; border-radius: 5px; background: #fff8e6; color: #203d37; box-shadow: 2px 5px 12px #0005; font: bold 1.5rem Georgia; transform: rotate(-19deg); }
+.fan b { display: block; text-align: center; font-size: 2.4rem; }
+.fan i + i { margin-left: -1rem; transform: translateY(-9px); color: #a13244; }
+.fan i:last-child { transform: rotate(18deg); color: #203d37; }
+.chip-stack { display: grid; place-items: center; border-radius: 50%; width: 7rem; height: 2.5rem; background: repeating-conic-gradient(#dbb8ad 0 12deg,#74435f 12deg 45deg); box-shadow: 0 5px #432c45,0 9px #b38692,0 14px #483049,0 19px #a3778a,3rem 1.4rem #ceb999; }
+.lobby-main .home-page { color-scheme: light; color: #202d30; background: #faf7ed; border-radius: 8px; max-width: 31rem; margin: 1.5rem auto; padding: 1.4rem; }
+.theme-label { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.theme-label select { font: inherit; border: 1px solid #81918b; border-radius: 4px; padding: .4rem; }
+.home-page__field input,.home-page__tab { border-color: #81918b; }
+.home-page__tab--active,.home-page__submit { background: var(--felt); color: white; }
+.home-page__error { color: #a02a35; }
