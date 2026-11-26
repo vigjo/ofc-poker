@@ -21,6 +21,18 @@ export function RoomPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("connecting");
   const socketRef = useRef<RoomSocket | null>(null);
+  const [theme] = useState(() => {
+    try { return localStorage.getItem("ofc.lobby.theme") === "midnight" ? "midnight" : "felt"; }
+    catch { return "felt"; }
+  });
+  const [showIntro, setShowIntro] = useState(false);
+  const fantasy = state?.status === "IN_PROGRESS" && Boolean(state.players?.find(player => player.isYou)?.fantasyland);
+  useEffect(() => {
+    if (!fantasy) { setShowIntro(false); return; }
+    setShowIntro(true);
+    const timer = window.setTimeout(() => setShowIntro(false), 2800);
+    return () => window.clearTimeout(timer);
+  }, [fantasy]);
 
   useEffect(() => {
     const seat = loadSeat(roomId);
@@ -132,7 +144,10 @@ export function RoomPage() {
   }
 
   return (
-    <div className="room-page">
+    <div className={`room-page room-page--${theme} ${fantasy ? "room-page--fantasy" : ""}`}>
+      {fantasy && <div className="fantasy-backdrop" aria-hidden="true"><span>✦</span><span>🦄</span><span>✿</span><span>🦄</span><span>♥</span><span>🦄</span></div>}
+      {showIntro && <div className="fantasy-intro" aria-hidden="true"><span>🦄 ✦ 🌈 ✦ 🦄</span><strong>FANTASYLAND!</strong><span>✿ ♥ ✿</span></div>}
+      {fantasy && <div className="fantasy-banner"><span aria-hidden="true">🌈 🦄</span><strong>Welcome to Fantasyland!</strong><span aria-hidden="true">🦄 ✨</span></div>}
       <header className="room-page__header">
         <div>
           <h1>Room {state.inviteCode ?? roomId}</h1>

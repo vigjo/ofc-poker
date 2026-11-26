@@ -51,6 +51,7 @@ function hotkeyBadgeForIndex(index: number): string | undefined {
 export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
   const [draftPlacements, setDraftPlacements] = useState<PlacementDto[]>([]);
+  const draggedCard = useRef<Card | null>(null);
   const [draftDiscard, setDraftDiscard] = useState<Card | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -261,6 +262,7 @@ export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
             size="lg"
             draftByRow={canAct ? draftByRow : undefined}
             onRowClick={canAct ? handleRowClick : undefined}
+            onCardDrop={canAct ? (row) => { const card = draggedCard.current; draggedCard.current = null; if (card && unassigned.includes(card)) placeCardOnRow(card, row); } : undefined}
             highlightRows={
               showRowHotkeys && me
                 ? ROWS.filter((row) => rowCapacityRemaining(row, me) > 0)
@@ -281,6 +283,7 @@ export function GameBoard({ state, seatToken, onStateUpdate }: GameBoardProps) {
                     selected={selectedCard === card}
                     hotkeyBadge={hotkeyBadgeForIndex(index)}
                     onClick={() => setSelectedCard(selectedCard === card ? null : card)}
+                    onDragStart={() => { draggedCard.current = card; }}
                   />
                 ))}
               </div>

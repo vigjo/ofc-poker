@@ -127,3 +127,4 @@
 .player-board__row--highlight .player-board__slot {
   border-color: #4da3ff;
 }
+.player-board__row--drop { outline:2px dashed #f6d875; background:#ffffff25; }

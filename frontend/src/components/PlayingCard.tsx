@@ -19,6 +19,7 @@ interface PlayingCardProps {
   label?: string;
   /** Optional hotkey badge shown on the card (e.g. "1"–"9", "0"). */
   hotkeyBadge?: string;
+  onDragStart?: () => void;
 }
 
 export function PlayingCard({
@@ -29,6 +30,7 @@ export function PlayingCard({
   onClick,
   label,
   hotkeyBadge,
+  onDragStart,
 }: PlayingCardProps) {
   const interactive = Boolean(onClick);
 
@@ -54,6 +56,8 @@ export function PlayingCard({
         selected ? "playing-card--selected" : ""
       }`}
       onClick={onClick}
+      draggable={Boolean(onDragStart)}
+      onDragStart={onDragStart}
       disabled={!interactive}
       aria-pressed={interactive ? selected : undefined}
       aria-label={label ?? `${rankLabel} of ${suitName(suit)}`}

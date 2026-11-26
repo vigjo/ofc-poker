@@ -10,6 +10,7 @@ interface PlayerBoardProps {
   /** Optional draft placements not yet submitted, rendered inline in their row. */
   draftByRow?: Partial<Record<Row, Card[]>>;
   onRowClick?: (row: Row) => void;
+  onCardDrop?: (row: Row) => void;
   highlightRows?: Row[];
   /** When true, show 1/2/3 hotkey badges on top/middle/bottom rows. */
   showRowHotkeys?: boolean;
@@ -24,6 +25,7 @@ export function PlayerBoard({
   size = "md",
   draftByRow,
   onRowClick,
+  onCardDrop,
   highlightRows,
   showRowHotkeys = false,
 }: PlayerBoardProps) {
@@ -75,6 +77,9 @@ export function PlayerBoard({
               tabIndex={clickable ? 0 : undefined}
               aria-label={clickable ? `Place selected card in ${ROW_LABELS[row]} row` : undefined}
               onClick={clickable ? () => onRowClick?.(row) : undefined}
+              onDragOver={clickable && onCardDrop ? (event) => { event.preventDefault(); event.currentTarget.classList.add("player-board__row--drop"); } : undefined}
+              onDragLeave={(event) => event.currentTarget.classList.remove("player-board__row--drop")}
+              onDrop={clickable && onCardDrop ? (event) => { event.preventDefault(); event.currentTarget.classList.remove("player-board__row--drop"); onCardDrop(row); } : undefined}
               onKeyDown={
                 clickable
                   ? (event) => {

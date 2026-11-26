@@ -87,3 +87,29 @@
   flex-direction: column;
   gap: 1rem;
 }
+.room-page--felt, .room-page--midnight { min-height: 100svh; max-width: none; padding-inline: max(1rem, calc((100vw - 960px)/2)); color:#f4f8f1; background: radial-gradient(ellipse at top,#275e4e,#102b28 65%); }
+.room-page--midnight { background:radial-gradient(ellipse at top,#52445e,#17172b 65%); }
+.room-page--felt h1,.room-page--midnight h1 { color:inherit; }
+.room-page--felt .player-board { background:#173c35; border-color:#6e9785; }
+.room-page--midnight .player-board { background:#252039; border-color:#807594; }
+.room-page--fantasy { position:relative; isolation:isolate; overflow:hidden; background:radial-gradient(ellipse at 15% 5%,#ffe183,transparent 25%),radial-gradient(ellipse at 85% 12%,#ff92c6,transparent 30%),linear-gradient(155deg,#6bd1c6,#a96ed1 48%,#ff98b4); }
+.room-page--fantasy .player-board { background:linear-gradient(135deg,#8754aa,#66418c); border:3px solid #ffd4ef; box-shadow:0 0 0 3px #c37ac6,0 8px 28px #683f9c80; }
+.room-page--fantasy .game-board__hand { background:#603c88; border:3px solid #ffe5a7; }
+.fantasy-banner { display:flex; align-items:center; justify-content:space-around; gap:.5rem; padding:1rem; text-align:center; border:3px solid #ffefac; border-radius:2rem; background:linear-gradient(105deg,#e362ac,#a75ed1,#f57d94); box-shadow:0 0 0 5px #ce72bd,0 0 45px #fff39d88; }
+.fantasy-banner strong { font:900 clamp(1.6rem,4vw,3rem)/1 Georgia,serif; color:#fff8c0; text-shadow:2px 3px #c948a5,4px 6px #783c96; }
+.fantasy-backdrop { position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:-1; }
+.fantasy-backdrop span { position:absolute; font-size:2rem; top:-3rem; animation:fantasy-fall 7s linear infinite; }
+.fantasy-backdrop span:nth-child(1){left:10%;animation-delay:-3s}.fantasy-backdrop span:nth-child(3){left:50%;animation-delay:-5s}.fantasy-backdrop span:nth-child(5){left:85%;animation-delay:-1s}
+.fantasy-backdrop span:nth-child(even){left:-4rem;top:30%;animation:fantasy-prance 14s linear infinite;transform:scaleX(-1)}
+.fantasy-backdrop span:nth-child(4){top:60%;animation-delay:-7s}.fantasy-backdrop span:nth-child(6){top:80%;animation-delay:-4s}
+.fantasy-intro { position:fixed; inset:0; z-index:100; display:grid; place-content:center; text-align:center; pointer-events:none; background:radial-gradient(circle,#ffe5a3e8,#e875c6d9 45%,#6d4bc1e6); animation:fantasy-intro 2.8s forwards; }
+.fantasy-intro strong { font:900 clamp(3rem,11vw,8rem)/1 Georgia,serif; color:#fff8b0; text-shadow:4px 5px #d34ca8,8px 10px #7446a1; }
+.fantasy-intro span { font-size:clamp(2rem,5vw,4rem); }
+@keyframes fantasy-fall { to { transform:translateY(115vh) rotate(200deg); } }
+@keyframes fantasy-prance { to { left:calc(100% + 4rem); } }
+@keyframes fantasy-intro { 0%,70%{opacity:1}100%{opacity:0;visibility:hidden} }
+@media(prefers-reduced-motion:reduce) { .fantasy-backdrop span { animation:none!important; } .fantasy-intro { animation-duration:.01s; } }
+@keyframes fantasy-hop { from { translate:0 0; rotate:-8deg; } to { translate:0 -12px; rotate:8deg; } }
+.fantasy-backdrop span:nth-child(even) { animation:fantasy-prance 14s linear infinite, fantasy-hop .55s ease-in-out infinite alternate; }
+.fantasy-backdrop span:nth-child(4) { animation-delay:-7s, -.3s; }
+.fantasy-backdrop span:nth-child(6) { animation-delay:-4s, -.1s; }

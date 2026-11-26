@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GameBoard } from "./GameBoard";
@@ -243,6 +243,13 @@ describe("GameBoard", () => {
     expect(
       within(hand()).queryByRole("button", { name: "8 of diamonds" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("places a dragged card on a row without a prior selection", () => {
+    render(<GameBoard state={streetState()} seatToken="token" onStateUpdate={vi.fn()} />);
+    fireEvent.dragStart(screen.getByRole("button", { name: "9 of clubs" }));
+    fireEvent.drop(screen.getByRole("button", { name: "Place selected card in Top row" }));
+    expect(screen.getByText(/9c → top/i)).toBeInTheDocument();
   });
 
   it("undoes the last draft placement with Backspace", async () => {
