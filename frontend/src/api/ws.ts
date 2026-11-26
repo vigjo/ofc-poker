@@ -1,6 +1,8 @@
 import type { RoomStateView } from "./types";
 
-const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL ?? "ws://localhost:8080";
+const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || (import.meta.env.PROD
+  ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}${import.meta.env.BASE_URL.replace(/\/$/, "")}`
+  : "ws://localhost:8080");
 
 export type ConnectionStatus = "connecting" | "open" | "reconnecting" | "closed";
 

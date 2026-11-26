@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { createRoom, joinRoom, playTurnIfActive, startGame, waitForActivePage } from "./helpers";
 
 test("joining with an unknown invite code shows a friendly error", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("./");
   await page.getByRole("tab", { name: "Join with a code" }).click();
   await page.getByLabel("Display name").fill("Nobody");
   await page.getByLabel("Invite code").fill("ZZZZZZ");

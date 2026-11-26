@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 
 /** Creates a room from the home page and waits for the lobby to render. */
 export async function createRoom(page: Page, displayName: string): Promise<string> {
-  await page.goto("/");
+  await page.goto("./");
   await page.getByLabel("Display name").fill(displayName);
   await page.getByRole("button", { name: "Create room" }).click();
   await page.waitForURL(/\/room\/[A-Z0-9]+$/);
@@ -16,7 +16,7 @@ export async function createRoom(page: Page, displayName: string): Promise<strin
 
 /** Joins an existing room by invite code and waits for the lobby to render. */
 export async function joinRoom(page: Page, roomId: string, displayName: string): Promise<void> {
-  await page.goto("/");
+  await page.goto("./");
   await page.getByRole("tab", { name: "Join with a code" }).click();
   await page.getByLabel("Display name").fill(displayName);
   await page.getByLabel("Invite code").fill(roomId);
@@ -50,10 +50,15 @@ export async function playTurnIfActive(page: Page): Promise<boolean> {
 
   for (let i = 0; i < placeCount; i++) {
     await cardButtons.first().click();
-    await rows.first().click();
+    // Activate the row itself. Its center can contain a drafted card's Undo control.
+    await rows.first().press("Enter");
   }
 
-  await page.locator(".game-board__confirm").click();
+  const [response] = await Promise.all([
+    page.waitForResponse(r => r.request().method() === "POST" && r.url().endsWith("/moves")),
+    page.locator(".game-board__confirm").click(),
+  ]);
+  if (!response.ok()) throw new Error(`Move failed with HTTP ${response.status()}: ${await response.text()}`);
   return true;
 }
 
